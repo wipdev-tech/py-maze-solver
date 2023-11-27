@@ -1,4 +1,5 @@
 from tkinter import Tk, Canvas
+from time import sleep
 
 
 class Window():
@@ -72,17 +73,15 @@ class Cell():
         bot_l = Point(self._x1, self._y2)
         bot_r = Point(self._x2, self._y2)
 
-        if self.has_left_wall:
-            self._win.draw_line(Line(top_l, bot_l), "black")
+        top_clr = "black" if self.has_top_wall else "white"
+        bot_clr = "black" if self.has_bottom_wall else "white"
+        l_clr = "black" if self.has_left_wall else "white"
+        r_clr = "black" if self.has_right_wall else "white"
 
-        if self.has_right_wall:
-            self._win.draw_line(Line(top_r, bot_r), "black")
-
-        if self.has_top_wall:
-            self._win.draw_line(Line(top_l, top_r), "black")
-
-        if self.has_bottom_wall:
-            self._win.draw_line(Line(bot_l, bot_r), "black")
+        self._win.draw_line(Line(top_l, top_r), top_clr)
+        self._win.draw_line(Line(top_l, bot_l), l_clr)
+        self._win.draw_line(Line(bot_l, bot_r), bot_clr)
+        self._win.draw_line(Line(top_r, bot_r), r_clr)
 
     def draw_move(self, to_cell, undo=False):
         move_x1 = (self._x1 + self._x2) / 2
@@ -101,14 +100,72 @@ class Cell():
         self._win.draw_line(Line(move_p1, move_p2), move_color)
 
 
+class Maze():
+    def __init__(
+        self,
+        x1,
+        y1,
+        num_rows,
+        num_cols,
+        cell_size_x,
+        cell_size_y,
+        win,
+    ):
+        self.x1 = x1
+        self.y1 = y1
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.cell_size_x = cell_size_x
+        self.cell_size_y = cell_size_y
+        self.win = win
+        self._create_cells()
+
+    def _create_cells(self):
+        self._cells = []
+        for c in range(self.num_cols):
+            self._cells.append([])
+            x1 = c * self.cell_size_x + self.x1
+            x2 = (c+1) * self.cell_size_x + self.x1
+            for r in range(self.num_rows):
+                y1 = r * self.cell_size_y + self.y1
+                y2 = (r+2) * self.cell_size_y + self.y1
+                new_cell = Cell(x1, x2, y1, y2, self.win)
+                self._cells[c].append(new_cell)
+
+        for c in range(self.num_cols):
+            for r in range(self.num_rows):
+                self._draw_cell(c, r)
+
+        self._break_entrance_and_exit()
+
+    def _draw_cell(self, i, j):
+        self._cells[i][j].draw()
+        self._animate()
+
+    def _animate(self):
+        self.win.redraw()
+        sleep(0.05)
+
+    def _break_entrance_and_exit(self):
+        self._cells[0][0].has_top_wall = False
+        self._draw_cell(0, 0)
+
+        i_last = self.num_cols - 1
+        j_last = self.num_rows - 1
+        self._cells[i_last][j_last].has_bottom_wall = False
+        self._draw_cell(i_last, j_last)
+
+
 if __name__ == "__main__":
-    win = Window(800, 600)
+    win = Window(1500, 1500)
 
-    test_cell_1 = Cell(50, 100, 50, 100, win, has_top_wall=False)
-    test_cell_2 = Cell(100, 150, 50, 100, win, has_bottom_wall=False)
-    test_cell_1.draw()
-    test_cell_2.draw()
+    # test_cell_1 = Cell(50, 100, 50, 100, win, has_top_wall=False)
+    # test_cell_2 = Cell(100, 150, 50, 100, win, has_bottom_wall=False)
+    # test_cell_1.draw()
+    # test_cell_2.draw()
+    # test_cell_1.draw_move(test_cell_2, True)
 
-    test_cell_1.draw_move(test_cell_2, True)
+    test_maze = Maze(10, 10, 10, 10, 25, 25, win)
+    test_maze._create_cells()
 
     win.wait_for_close()
