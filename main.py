@@ -3,8 +3,8 @@ from time import sleep
 import random
 
 WALL_CLR = "#E0E0FF"
-BACK_CLR = "#30304B"
-MOVE_CLR = "pink"
+BACK_CLR = "#353540"
+MOVE_CLR = "green"
 UNDO_CLR = "brown"
 
 
@@ -62,7 +62,7 @@ class Line():
 class Cell():
     def __init__(
         self, _x1, _x2, _y1, _y2, _win, has_left_wall=True,
-        has_right_wall=True, has_top_wall=True,  has_bottom_wall=True
+        has_right_wall=True, has_top_wall=True, has_bottom_wall=True
     ):
         self.has_left_wall = has_left_wall
         self.has_right_wall = has_right_wall
@@ -134,6 +134,8 @@ class Maze():
         self._break_entrance_and_exit()
         self._break_walls_r(2, 2)
         self._reset_cells_visited()
+        self.solve()
+        self._reset_cells_visited()
 
     def _create_cells(self):
         self._cells = []
@@ -156,7 +158,7 @@ class Maze():
 
     def _animate(self):
         self.win.redraw()
-        sleep(0.03)
+        sleep(0.02)
 
     def _break_entrance_and_exit(self):
         self._cells[0][0].has_top_wall = False
@@ -200,12 +202,16 @@ class Maze():
                 new_i, new_j = random.choice(cells_to_check)
                 if new_i == i-1:
                     self._cells[new_i][new_j].has_right_wall = False
+                    self._cells[i][j].has_left_wall = False
                 elif new_i == i+1:
                     self._cells[new_i][new_j].has_left_wall = False
+                    self._cells[i][j].has_right_wall = False
                 elif new_j == j-1:
                     self._cells[new_i][new_j].has_bottom_wall = False
+                    self._cells[i][j].has_top_wall = False
                 elif new_j == j+1:
                     self._cells[new_i][new_j].has_top_wall = False
+                    self._cells[i][j].has_bottom_wall = False
 
                 self._draw_cell(new_i, new_j)
                 self._break_walls_r(new_i, new_j)
@@ -214,6 +220,55 @@ class Maze():
         for i in range(self.num_cols):
             for j in range(self.num_rows):
                 self._cells[i][j].visited = False
+
+    def solve(self):
+        self._solve_r(0, 0)
+
+    def _solve_r(self, i, j):
+        self._animate()
+        cell = self._cells[i][j]
+        cell.visited = True
+
+        if i == self.num_cols-1 and j == self.num_rows-1:
+            return True
+
+        if i > 0:
+            left_cell = self._cells[i-1][j]
+            if not left_cell.has_right_wall and not left_cell.visited:
+                cell.draw_move(left_cell)
+                if self._solve_r(i-1, j):
+                    return True
+                else:
+                    cell.draw_move(left_cell, undo=True)
+
+        if i < (self.num_cols-1):
+            right_cell = self._cells[i+1][j]
+            if not right_cell.has_left_wall and not right_cell.visited:
+                cell.draw_move(right_cell)
+                if self._solve_r(i+1, j):
+                    return True
+                else:
+                    cell.draw_move(right_cell, undo=True)
+
+        if j > 0:
+            above_cell = self._cells[i][j-1]
+            if not above_cell.has_bottom_wall and not above_cell.visited:
+                cell.draw_move(above_cell)
+                if self._solve_r(i, j-1):
+                    return True
+                else:
+                    cell.draw_move(above_cell, undo=True)
+
+        if j < (self.num_rows-1):
+            below_cell = self._cells[i][j+1]
+            if not below_cell.has_top_wall and not below_cell.visited:
+                cell.draw_move(below_cell)
+                if self._solve_r(i, j+1):
+                    return True
+                else:
+                    cell.draw_move(below_cell, undo=True)
+
+        return False
 
 
 if __name__ == "__main__":
@@ -226,5 +281,4 @@ if __name__ == "__main__":
     # test_cell_1.draw_move(test_cell_2, undo=True)
 
     test_maze = Maze(10, 10, 10, 10, 80, 80, win, seed=42)
-
     win.wait_for_close()
