@@ -1,5 +1,6 @@
 from tkinter import Tk, BOTH, Canvas
 from time import sleep
+import random
 
 WALL_CLR = "#E0E0FF"
 BACK_CLR = "#30304B"
@@ -72,6 +73,7 @@ class Cell():
         self._y1 = _y1
         self._y2 = _y2
         self._win = _win
+        self.visited = False
 
     def draw(self):
         top_left = Point(self._x1, self._y1)
@@ -116,6 +118,7 @@ class Maze():
         cell_size_x,
         cell_size_y,
         win,
+        seed
     ):
         self.x1 = x1
         self.y1 = y1
@@ -124,8 +127,13 @@ class Maze():
         self.cell_size_x = cell_size_x
         self.cell_size_y = cell_size_y
         self.win = win
+        self.seed = None
 
+        random.seed(self.seed)
         self._create_cells()
+        self._break_entrance_and_exit()
+        self._break_walls_r(2, 2)
+        self._reset_cells_visited()
 
     def _create_cells(self):
         self._cells = []
@@ -142,15 +150,13 @@ class Maze():
 
                 self._draw_cell(c, r)
 
-        self._break_entrance_and_exit()
-
     def _draw_cell(self, i, j):
         self._cells[i][j].draw()
         self._animate()
 
     def _animate(self):
         self.win.redraw()
-        sleep(0.02)
+        sleep(0.03)
 
     def _break_entrance_and_exit(self):
         self._cells[0][0].has_top_wall = False
@@ -160,6 +166,54 @@ class Maze():
         j_last = self.num_rows - 1
         self._cells[i_last][j_last].has_bottom_wall = False
         self._draw_cell(i_last, j_last)
+
+    def _break_walls_r(self, i, j):
+        cell = self._cells[i][j]
+        cell.visited = True
+
+        while True:
+            cells_to_check = []
+
+            if i > 0:
+                left_cell = self._cells[i-1][j]
+                if not left_cell.visited:
+                    cells_to_check.append((i-1, j))
+
+            if i < (self.num_cols-1):
+                right_cell = self._cells[i+1][j]
+                if not right_cell.visited:
+                    cells_to_check.append((i+1, j))
+
+            if j > 0:
+                above_cell = self._cells[i][j-1]
+                if not above_cell.visited:
+                    cells_to_check.append((i, j-1))
+
+            if j < (self.num_rows-1):
+                below_cell = self._cells[i][j+1]
+                if not below_cell.visited:
+                    cells_to_check.append((i, j+1))
+
+            if len(cells_to_check) == 0:
+                return
+            else:
+                new_i, new_j = random.choice(cells_to_check)
+                if new_i == i-1:
+                    self._cells[new_i][new_j].has_right_wall = False
+                elif new_i == i+1:
+                    self._cells[new_i][new_j].has_left_wall = False
+                elif new_j == j-1:
+                    self._cells[new_i][new_j].has_bottom_wall = False
+                elif new_j == j+1:
+                    self._cells[new_i][new_j].has_top_wall = False
+
+                self._draw_cell(new_i, new_j)
+                self._break_walls_r(new_i, new_j)
+
+    def _reset_cells_visited(self):
+        for i in range(self.num_cols):
+            for j in range(self.num_rows):
+                self._cells[i][j].visited = False
 
 
 if __name__ == "__main__":
@@ -171,6 +225,6 @@ if __name__ == "__main__":
     # test_cell_2.draw()
     # test_cell_1.draw_move(test_cell_2, undo=True)
 
-    test_maze = Maze(10, 10, 10, 10, 80, 80, win)
+    test_maze = Maze(10, 10, 10, 10, 80, 80, win, seed=42)
 
     win.wait_for_close()
